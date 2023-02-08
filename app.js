@@ -19,7 +19,6 @@ const configuration = new Configuration({
   apiKey: process.env.apiKey
 });
 
-console.log(configuration)
 const openai = new OpenAIApi(configuration);
 var completion;
 app.event('app_mention', async({event, context, client, say}) => {
@@ -31,11 +30,20 @@ app.event('app_mention', async({event, context, client, say}) => {
     });
 
     var text = "";
+    var users = {};
     for(var i = 0; i < result.messages.length-1; i++){
-      const userResult = await client.users.info({
-        user: result.messages[i].user
-      });
-      text= text+ `${userResult.user.real_name} says ${result.messages[i].text} . `;
+      var user_name="";
+      if(result.messages[i].user in users){
+        user_name=users[result.messages[i].user];
+      }
+      else{
+        const userResult = await client.users.info({
+          user: result.messages[i].user
+        });
+        users[result.messages[i].user]=userResult.user.real_name;
+      }
+      
+      text= text+ `${user_name} says ${result.messages[i].text} . `;
 
     }
     completion = await openai.createCompletion({
