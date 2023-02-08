@@ -1,6 +1,9 @@
 import { Configuration, OpenAIApi } from "openai";
 import pkg from '@slack/bolt';
+import { config } from "dotenv";
 const { App } = pkg;
+
+config()
 
 // Initializes your app with your bot token and signing secret
 const app = new App({
@@ -12,9 +15,11 @@ const app = new App({
 });
 
 const configuration = new Configuration({
- 
+  organization: process.env.organization,
+  apiKey: process.env.apiKey
 });
 
+console.log(configuration)
 const openai = new OpenAIApi(configuration);
 var completion;
 app.event('app_mention', async({event, context, client, say}) => {
@@ -32,21 +37,21 @@ app.event('app_mention', async({event, context, client, say}) => {
       });
       text= text+ `${userResult.user.real_name} says ${result.messages[i].text} . `;
 
-      if(i==result.messages.length-2){
-        console.log(text)
-        completion = await openai.createCompletion({
-          model: "text-davinci-003",
-          prompt: `summarize the following conversation in point form: \n ${text}`,
-          temperature: 0.7,
-          max_tokens: 256,
-          top_p: 1,
-          frequency_penalty: 0,
-          presence_penalty: 0,
-          });
-        console.log(completion.data.choices)
-        await say("Here is the answer, " + completion.data.choices[0].text)
-      }
     }
+    completion = await openai.createCompletion({
+      model: "text-davinci-003",
+      prompt: `summarize the following conversation in point form: \n ${text}`,
+      temperature: 0.7,
+      max_tokens: 256,
+      top_p: 1,
+      frequency_penalty: 0,
+      presence_penalty: 0,
+      });
+    await client.chat.postMessage({
+      channel: event.channel,
+      text: "Here is the summary, " + completion.data.choices[0].text,
+      thread_ts: event.thread_ts
+    });
   }
   
   catch (error) {
